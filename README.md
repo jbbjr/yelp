@@ -1,5 +1,6 @@
 # Group 7 - Final Project Deliverable
 **Contributors**
+
 Bennett Blanco, Sofia Lopez Somohano, Jose Salerno, Camila Daza
 
 # Problem Statement
