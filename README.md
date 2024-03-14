@@ -6,7 +6,28 @@ Bennett Blanco, Sofia Lopez Somohano, Jose Salerno, Camila Daza
 Our project aims to gather insights into user preferences and identify the areas where each business can improve. Our goal is to comprehend the overall user sentiment, detect patterns in preferences, and ultimately provide models that would help businesses understand users' satisfaction to enhance customer experiences. This project would empower businesses to make informed decisions and improve the overall quality of customer experiences.
 
 # Data Preparation
-The Yelp Academic Dataset comprises over 6 million reviews across over 150,000 businesses. It is an academic resource available through an application on the official Yelp website. The data is stored in separate files in JSON format and includes business data, review text data, user data, check-ins, tips, and photo data. The JSONs altogether are a little over 10GB. So, in order to load all of the data and get it into a workable, tabular format, all the JSONs were placed in a BigQuery data lake. Additionally, the Business JSON had to be parsed line by line, since the schema could not be detected by BigQuery or any libraries. After this was done and the data lake was populated, we could construct the proper query (Figure 1) to combine all the relevant queries from each JSON. To conduct our analysis, we connected our repo to the BigQuery project via a service account and queried a 5% sample of the compiled JSONs.
+The Yelp Academic Dataset comprises over 6 million reviews across over 150,000 businesses. It is an academic resource available through an application on the official Yelp website. The data is stored in separate files in JSON format and includes business data, review text data, user data, check-ins, tips, and photo data. The JSONs altogether are a little over 10GB. So, in order to load all of the data and get it into a workable, tabular format, all the JSONs were placed in a BigQuery data lake. Additionally, the Business JSON had to be parsed line by line, since the schema could not be detected by BigQuery or any libraries. After this was done and the data lake was populated, we could construct the proper query to combine all the relevant queries from each JSON. To conduct our analysis, we connected our repo to the BigQuery project via a service account and queried a 5% sample of the compiled JSONs.
+
+
+```sql
+CREATE OR REPLACE TABLE `ba820-proj.yelp_academic_dataset.tabularized` AS (
+  SELECT *
+  FROM `ba820-proj.yelp_academic_dataset.reviews` reviews
+  LEFT JOIN (
+    SELECT user_id, average_stars AS average_user_stars, yelping_since, review_count AS submitted_reviews
+    FROM `ba820-proj.yelp_academic_dataset.users`
+  ) USING (user_id)
+  LEFT JOIN (
+    SELECT business_id, name, address, city, state, postal_code latitude, longitude, stars AS average_business_stars, review_count AS recieved_reviews, categories, attributes
+    FROM `ba820-proj.yelp_academic_dataset.businesses`
+  ) USING (business_id)
+  LEFT JOIN (
+    SELECT user_id, business_id, text AS tip_review
+    FROM `ba820-proj.yelp_academic_dataset.tips`
+  ) USING (business_id, user_id)
+)
+```
+
 
 As for our exploratory data analysis (EDA), the data was generally clean, as there were no outliers or duplicates, and null values were marginal. The primary challenge arose from the categories column, which stored arrays of categories for each business. Initially there were 52,592 unique categories array objects. To address this, we hardcoded 18 general categories, with top categories including restaurants and bars (Figure 2). Following this, we conducted basic visualizations to gain insights before delving into the analysis of review text values.
 
