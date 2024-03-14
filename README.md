@@ -8,6 +8,8 @@ Our project aims to gather insights into user preferences and identify the areas
 # Data Preparation
 The Yelp Academic Dataset comprises over 6 million reviews across over 150,000 businesses. It is an academic resource available through an application on the official Yelp website. The data is stored in separate files in JSON format and includes business data, review text data, user data, check-ins, tips, and photo data. The JSONs altogether are a little over 10GB. So, in order to load all of the data and get it into a workable, tabular format, all the JSONs were placed in a BigQuery data lake. Additionally, the Business JSON had to be parsed line by line, since the schema could not be detected by BigQuery or any libraries. After this was done and the data lake was populated, we could construct the proper query to combine all the relevant queries from each JSON. To conduct our analysis, we connected our repo to the BigQuery project via a service account and queried a 5% sample of the compiled JSONs.
 
+</br>
+</br>
 
 ```sql
 CREATE OR REPLACE TABLE `ba820-proj.yelp_academic_dataset.tabularized` AS (
@@ -27,9 +29,17 @@ CREATE OR REPLACE TABLE `ba820-proj.yelp_academic_dataset.tabularized` AS (
   ) USING (business_id, user_id)
 )
 ```
+</br>
+</br>
 
+As for our exploratory data analysis (EDA), the data was generally clean, as there were no outliers or duplicates, and null values were marginal. The primary challenge arose from the categories column, which stored arrays of categories for each business. Initially there were 52,592 unique categories array objects. To address this, we hardcoded 18 general categories, with top categories including restaurants and bars. Following this, we conducted basic visualizations to gain insights before delving into the analysis of review text values. 
 
-As for our exploratory data analysis (EDA), the data was generally clean, as there were no outliers or duplicates, and null values were marginal. The primary challenge arose from the categories column, which stored arrays of categories for each business. Initially there were 52,592 unique categories array objects. To address this, we hardcoded 18 general categories, with top categories including restaurants and bars (Figure 2). Following this, we conducted basic visualizations to gain insights before delving into the analysis of review text values.
+</br>
+</br>
+
+![categories](https://raw.githubusercontent.com/jbbjr/yelp/main/pictures/categories.png)
+
+</br>
 
 # Analysis Plan
 One of the main goals of this project is to derive meaning from customer reviews on their experiences at business establishments and to predict their star rating to generalize to other platforms for the businesses receiving the respective reviews. In order to do this, we first preprocessed and tokenized the reviews so that we can collect the embeddings. Upon doing so, we utilized the keys and indices in Word2Vec, which utilizes methods such as Continuous Bag of Words (CBOW) and skip-gram, to get our vector embeddings for our tokenized reviews.
@@ -44,12 +54,43 @@ Lastly, we used the embeddings to try and predict star rating. We employed class
 # Final Results with Limitations
 The sentiment analysis we conducted found that the sentiment of reviews generally falls between 0.1 and 0.5 across our sample (See Figure 8). This is interesting, given the star rating of a review is on an ordinal scale of one to five. While these sentiment scores might not be a one-to-one comparison with star ratings, it is still interesting that this is how the distribution formed. If the sentiments are correctly calculated, we can split down the middle, as a .3 would resemble a 3-star rating (generally considered neutral).
 
-Our cluster analysis reveals some very interesting findings and limitations. After conducting TSNE on the embedded reviews, we utilized the elbow method and conducted k-means clustering to derive some insights. The clusters produced do not separate very well (See Figure 4). One reason for this is that we produced 100 vectors and reduced them to three TSNE components, so we could’ve lost a lot of information. Another reason might be that we used a pre-trained Word2Vec based on Wikipedia text, rather than training our own. When we cluster with embedded categories, we find that k-means can actually distinguish pretty well between the categories alone (See Figure 5), but when trying to cluster entirely on embedded reviews, it struggles. This would suggest that wikipedia's text data is better on a definition basis than a business review basis.
+Our cluster analysis reveals some very interesting findings and limitations. After conducting TSNE on the embedded reviews, we utilized the elbow method and conducted k-means clustering to derive some insights. The clusters produced do not separate very well. 
+
+</br>
+</br>
+
+![TSNE_cluster](https://raw.githubusercontent.com/jbbjr/yelp/main/pictures/tsne-3dplot.png)
+
+</br>
+</br>
+
+One reason for this is that we produced 100 vectors and reduced them to three TSNE components, so we could’ve lost a lot of information. Another reason might be that we used a pre-trained Word2Vec based on Wikipedia text, rather than training our own. When we cluster with embedded categories, we find that k-means can actually distinguish pretty well between the categories alone, but when trying to cluster entirely on embedded reviews, it struggles. This would suggest that wikipedia's text data is better on a definition basis than a business review basis.
+
+</br>
+</br>
+
+![supervised_cluster](https://raw.githubusercontent.com/jbbjr/yelp/main/pictures/scaled-3dplot.png)
+
+</br>
+</br>
 
 Lastly, we applied some supervised models (XGBoost and Random Forest) to try and predict the star rating of reviews based on embeddings, which would provide a more objective scoring. Both models perform at about 60% accuracy but are also not hyperparameter-tuned, so they could possibly be viable with more exploration. (See Figures 6 and 7)
 
+
+
+
 # Business Relevant Insights
-The sentiment analysis provides solid insights for any business that chooses to utilize it. Unlike star ratings, which can vary in interpretation among different users (different people may associate different sentiments with star values), sentiment analysis provides a more objective measure. In other words, sentiment analysis transcends the limitations of numeric ratings by capturing more of the context and subtleties of emotions and opinions, which will enable businesses to address specific concerns in a more targeted manner (see Figure 3). Therefore, we can use our sentiment analysis scores to better understand their reviews and see what they need to improve on in an objective way. Additionally, this sentiment score can be applied to reviews outside of Yelp, and on other platforms, garnering more reviews for a business to analyze as feedback. Furthermore, finding areas of improvement through sentiment analysis could lead to overall higher customer satisfaction.
+The sentiment analysis provides solid insights for any business that chooses to utilize it. Unlike star ratings, which can vary in interpretation among different users (different people may associate different sentiments with star values), sentiment analysis provides a more objective measure. In other words, sentiment analysis transcends the limitations of numeric ratings by capturing more of the context and subtleties of emotions and opinions, which will enable businesses to address specific concerns in a more targeted manner. 
+
+</br>
+</br>
+
+![kde](https://raw.githubusercontent.com/jbbjr/yelp/main/pictures/kde-sentiment.png)
+
+</br>
+</br>
+
+Therefore, we can use our sentiment analysis scores to better understand their reviews and see what they need to improve on in an objective way. Additionally, this sentiment score can be applied to reviews outside of Yelp, and on other platforms, garnering more reviews for a business to analyze as feedback. Furthermore, finding areas of improvement through sentiment analysis could lead to overall higher customer satisfaction.
 
 Another business value derived from our project is acknowledging the multitude of platforms beyond Yelp where users express their opinions. Competitors such as Tripadvisor, Open Table, Google reviews, and even social media platforms like X and Reddit contribute to this landscape. Businesses may struggle to evaluate all the text information on these websites; however, our XGBoost and Random Forest model’s proficiency in predicting ratings from reviews can be a promising tool to standardize these diverse forms of feedback. Therefore, with our models, companies can effectively aggregate reviews and text data from multiple platforms and input them into our system. This enables businesses to gain insights into what users like or dislike about their services or products beyond Yelp.
 
